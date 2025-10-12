@@ -7,7 +7,6 @@ import os
 import voyageai
 from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel
-import math
 
 from base_agent import BaseFinancialAgent
 from llama_client import FireworksAIClient
@@ -16,15 +15,6 @@ from database_manager import MongoDBManager
 # Initialize clients
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 voyage_client = voyageai.Client(api_key=VOYAGE_API_KEY)
-
-def _cosine_similarity(v1: List[float], v2: List[float]) -> float:
-    """Calculate cosine similarity between two vectors."""
-    dot_product = sum(a * b for a, b in zip(v1, v2))
-    norm_v1 = math.sqrt(sum(a * a for a in v1))
-    norm_v2 = math.sqrt(sum(b * b for b in v2))
-    if norm_v1 == 0 or norm_v2 == 0:
-        return 0.0
-    return dot_product / (norm_v1 * norm_v2)
 
 class ProceduralMemorySystem(BaseFinancialAgent):
     """
@@ -87,23 +77,32 @@ class ProceduralMemorySystem(BaseFinancialAgent):
 
         situation_embedding = voyage_client.embed(texts=[current_situation], model="voyage-finance-2").embeddings[0]
 
-        all_procedures = list(self.db_manager.db.procedural_memories.find({"client_id": client_id}))
-        
-        if not all_procedures:
-            return []
+        pipeline = [
+            {
+                "$vectorSearch": {
+                    "index": "procedural_vector_index",
+                    "path": "embedding",
+                    "queryVector": situation_embedding,
+                    "numCandidates": 20,
+                    "limit": top_k,
+                    "filter": {"client_id": client_id}
+                }
+            },
+            {
+                "$addFields": {
+                    "weighted_score": {
+                        "$multiply": [
+                            "$score",
+                            "$confidence_score",
+                            {"$cond": [{"$gt": ["$success_rate", 0]}, "$success_rate", 0.5]}
+                        ]
+                    }
+                }
+            },
+            {"$sort": {"weighted_score": -1}}
+        ]
 
-        # Calculate similarity and weighted scores
-        for proc in all_procedures:
-            proc['similarity'] = _cosine_similarity(situation_embedding, proc.get('embedding', []))
-            confidence = proc.get("confidence_score", 0.5)
-            success_rate = proc.get("success_rate", 0)
-            effective_success_rate = success_rate if success_rate > 0 else 0.5
-            proc['weighted_score'] = proc['similarity'] * confidence * effective_success_rate
-        
-        # Sort by weighted score
-        sorted_procedures = sorted(all_procedures, key=lambda x: x['weighted_score'], reverse=True)
-        
-        recommendations = sorted_procedures[:top_k]
+        recommendations = list(self.db_manager.db.procedural_memories.aggregate(pipeline))
 
         for rec in recommendations:
             trigger_check_prompt = f"""

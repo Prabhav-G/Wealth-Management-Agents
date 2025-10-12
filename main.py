@@ -103,7 +103,7 @@ def main():
         print(f"\n✗ Error: {e}")
         traceback.print_exc()
         print("\nPlease check:")
-        print("1. Your fw_3ZhDcC6YgP5yvHmqYwiagMPx and VOYAGE_API_KEY are set in .env file")
+        print("1. Your FIREWORKS_API_KEY and VOYAGE_API_KEY are set in .env file")
         print("2. MongoDB is running and accessible")
         print("3. All dependencies are installed (pip install -r requirements.txt)")
 

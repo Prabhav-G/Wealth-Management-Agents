@@ -1,25 +1,32 @@
-
 import os
+import sys
 from datetime import datetime, timedelta
+
+# CRITICAL: Load environment variables FIRST, before any other imports
 from dotenv import load_dotenv
+load_dotenv(override=True)
 
-# Load environment variables from .env file
-load_dotenv()
+# Verify the API key is loaded before proceeding
+FIREWORKS_KEY = os.getenv("FIREWORKS_API_KEY")
+if not FIREWORKS_KEY:
+    print("✗ FATAL ERROR: FIREWORKS_API_KEY not found in environment!")
+    print("  Check your .env file and ensure it contains:")
+    print("  FIREWORKS_API_KEY=your_actual_key_here")
+    sys.exit(1)
+else:
+    print(f"✓ FIREWORKS_API_KEY loaded: {FIREWORKS_KEY[:6]}...{FIREWORKS_KEY[-6:]}")
 
-
-# Assuming environment variables are set for API keys
-
+# Now import modules - they should pick up the loaded environment
 from database_manager import MongoDBManager
 from episodic_memory import episodic_memory
 from semantic_memory import memory as semantic_memory
-from procedural_memory import procedural_memory
+from procedural_memory import seed_helper as procedural_memory
 
 # --- Data Generation ---
 
 def get_client_data():
     """Returns a list of synthetic client data."""
     return [
-        # ... (same client data as before) ...
         {
             "client_id": "client_101",
             "profile": {"name": "Alice Johnson", "age": 28, "risk_tolerance": "aggressive"},
@@ -73,62 +80,103 @@ def get_procedural_data():
 
 def seed_database():
     """Clears and seeds all three memory types in the database."""
-    print("Starting database seeding process...")
+    print("\n" + "="*70)
+    print("STARTING DATABASE SEEDING PROCESS")
+    print("="*70 + "\n")
+    
     db_manager = MongoDBManager()
     client_ids = ["client_101", "client_102", "client_103"]
 
     # 1. Clear existing data
-    print("Clearing existing synthetic data...")
+    print("📦 Clearing existing synthetic data...")
     db_manager.db.semantic_memories.delete_many({"client_id": {"$in": client_ids}})
     db_manager.db.episodic_memories.delete_many({"client_id": {"$in": client_ids}})
     db_manager.db.procedural_memories.delete_many({})
-    print("Cleanup complete.")
+    print("   ✓ Cleanup complete.\n")
 
     # 2. Seed Semantic Memory
-    print("\n--- Seeding Semantic Memory ---")
+    print("="*70)
+    print("SEEDING SEMANTIC MEMORY")
+    print("="*70)
     clients = get_client_data()
     count = 0
-    for client in clients:
-        for mem_type in ["profile", "portfolio", "goals"]:
-            if isinstance(client[mem_type], list):
-                for item in client[mem_type]:
-                    semantic_memory.create_semantic_memory(client["client_id"], mem_type, item)
-                    print(f"  + Created memory: {client['client_id']} - {mem_type}")
+    
+    try:
+        for client in clients:
+            for mem_type in ["profile", "portfolio", "goals"]:
+                if isinstance(client[mem_type], list):
+                    for item in client[mem_type]:
+                        semantic_memory.create_semantic_memory(client["client_id"], mem_type, item)
+                        print(f"  ✓ Created: {client['client_id']} -> {mem_type}")
+                        count += 1
+                else:
+                    semantic_memory.create_semantic_memory(client["client_id"], mem_type, client[mem_type])
+                    print(f"  ✓ Created: {client['client_id']} -> {mem_type}")
                     count += 1
-            else:
-                semantic_memory.create_semantic_memory(client["client_id"], mem_type, client[mem_type])
-                print(f"  + Created memory: {client['client_id']} - {mem_type}")
-                count += 1
-    print(f"Seeded {count} semantic memories.")
+        print(f"\n✓ Successfully seeded {count} semantic memories.\n")
+    except Exception as e:
+        print(f"\n✗ ERROR seeding semantic memory: {e}")
+        print("   This is likely an API authentication issue.")
+        print("   Your API key may have expired or been revoked.")
+        return False
 
     # 3. Seed Episodic Memory
-    print("\n--- Seeding Episodic Memory ---")
+    print("="*70)
+    print("SEEDING EPISODIC MEMORY")
+    print("="*70)
     events = get_episodic_data(clients)
     episodic_memory_manager = episodic_memory.EpisodicMemory(db_manager)
-    for event in events:
-        episodic_memory_manager.add_event(
-            client_id=event["client_id"],
-            event_type=event["event_type"],
-            transcript=event["transcript"],
-            timestamp=event["timestamp"]
-        )
-        print(f"  + Logged event: {event['client_id']} - {event['event_type']}")
-    print(f"Seeded {len(events)} episodic memories.")
+    
+    try:
+        for event in events:
+            episodic_memory_manager.add_event(
+                client_id=event["client_id"],
+                event_type=event["event_type"],
+                transcript=event["transcript"],
+                timestamp=event["timestamp"]
+            )
+            print(f"  ✓ Logged: {event['client_id']} -> {event['event_type']}")
+        print(f"\n✓ Successfully seeded {len(events)} episodic memories.\n")
+    except Exception as e:
+        print(f"\n✗ ERROR seeding episodic memory: {e}")
+        return False
 
     # 4. Seed Procedural Memory
-    print("\n--- Seeding Procedural Memory ---")
+    print("="*70)
+    print("SEEDING PROCEDURAL MEMORY")
+    print("="*70)
     procedures = get_procedural_data()
-    for proc in procedures:
-        procedural_memory.create_procedure(
-            procedure_name=proc["procedure_name"],
-            steps=proc["steps"],
-            description=proc["description"]
-        )
-        print(f"  + Learned procedure: {proc['procedure_name']}")
-    print(f"Seeded {len(procedures)} procedural memories.")
+    
+    try:
+        for proc in procedures:
+            procedural_memory.create_procedure(
+                procedure_name=proc["procedure_name"],
+                steps=proc["steps"],
+                description=proc["description"]
+            )
+            print(f"  ✓ Learned: {proc['procedure_name']}")
+        print(f"\n✓ Successfully seeded {len(procedures)} procedural memories.\n")
+    except Exception as e:
+        print(f"\n✗ ERROR seeding procedural memory: {e}")
+        return False
 
-    print("\nDatabase seeding complete!")
+    print("="*70)
+    print("✓ DATABASE SEEDING COMPLETE!")
+    print("="*70)
+    return True
 
 if __name__ == "__main__":
-    # Ensure your .env file is set up before running.
-    seed_database()
+    print("\n" + "="*70)
+    print("FINANCIAL ADVISORY SYSTEM - DATABASE SEEDER")
+    print("="*70)
+    
+    success = seed_database()
+    
+    if not success:
+        print("\n⚠  Seeding failed. Please check the errors above.")
+        print("   Most common issue: Invalid or expired Fireworks API key")
+        print("   Visit: https://fireworks.ai/account/api-keys to generate a new key")
+        sys.exit(1)
+    else:
+        print("\n✓ All synthetic data has been seeded successfully!")
+        sys.exit(0)

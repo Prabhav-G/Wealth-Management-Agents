@@ -1,4 +1,3 @@
-
 from typing import Dict
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -42,6 +41,30 @@ class MongoDBManager:
             print(f"✗ FATAL: Failed to connect to MongoDB: {e}")
             print("  Please check your environment and configuration.")
             raise
+
+    def __getattr__(self, name):
+        """
+        Dynamically provide access to MongoDB collections.
+        
+        This allows accessing collections as attributes:
+            self.market_research -> self.db["market_research"]
+            self.semantic_memories -> self.db["semantic_memories"]
+        
+        Args:
+            name: Collection name
+        
+        Returns:
+            MongoDB collection object
+        """
+        # Avoid infinite recursion for special attributes
+        if name.startswith('_') or name in ['db', 'client']:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        
+        # Check if db exists (to avoid issues during initialization)
+        if hasattr(self, 'db'):
+            return self.db[name]
+        
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def _create_search_indexes(self):
         """Create vector search indexes if they don't exist."""

@@ -11,20 +11,12 @@ class PortfolioManagerAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Portfolio Manager specializing in investment strategy and asset allocation.
-Your expertise includes:
-- Modern Portfolio Theory and asset allocation strategies
-- Risk-return optimization
-- Portfolio rebalancing strategies
-- Diversification across asset classes
-- Investment vehicle selection (stocks, bonds, ETFs, mutual funds)
-- Long-term wealth building strategies
-
-Provide detailed, actionable investment recommendations based on client goals and risk tolerance."""
-    
     def analyze_portfolio(self, portfolio_data: Dict, context: Dict) -> str:
         """Analyze existing portfolio and provide recommendations"""
+        system_prompt = """You are an expert Portfolio Manager specializing in investment strategy and asset allocation.
+Your expertise includes modern portfolio theory, risk-return optimization, and diversification strategies.
+Provide detailed, actionable investment recommendations."""
+        
         task = f"""Analyze the following portfolio and provide comprehensive recommendations:
         
 Portfolio Data:
@@ -40,7 +32,13 @@ Please provide:
 4. Diversification improvements
 5. Expected returns and risk metrics"""
         
-        result = self.execute_task(task, {"portfolio_data": portfolio_data, "context": context})
+        # FIXED: Call execute_task with proper keyword arguments
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=1500,
+            temperature=0.7
+        )
         
         # Store analysis in MongoDB
         self.db_manager.portfolio_data.update_one(
@@ -56,7 +54,7 @@ Please provide:
         # Add to episodic memory
         self.memory_hub.episodic.add_event(
             client_id=portfolio_data.get("user_id"),
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="portfolio_analysis"
         )
@@ -70,20 +68,11 @@ class TaxOptimizationAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Tax Optimization Specialist with deep knowledge of:
-- Tax-loss harvesting strategies
-- Capital gains and losses management
-- Tax-efficient fund placement (tax-advantaged vs taxable accounts)
-- Qualified dividend strategies
-- Required Minimum Distribution (RMD) planning
-- Tax brackets and marginal tax rate optimization
-- Estate tax planning basics
-
-Provide specific, actionable tax optimization strategies while noting that clients should consult with tax professionals."""
-    
     def identify_tax_opportunities(self, portfolio: Dict, tax_info: Dict) -> str:
         """Identify tax-loss harvesting and optimization opportunities"""
+        system_prompt = """You are an expert Tax Optimization Specialist with deep knowledge of tax-loss harvesting,
+capital gains management, and tax-efficient strategies. Provide specific, actionable recommendations."""
+        
         task = f"""Identify tax optimization opportunities:
 
 Portfolio Holdings:
@@ -99,7 +88,12 @@ Please identify:
 4. Estimated tax savings
 5. Implementation timeline"""
         
-        result = self.execute_task(task, {"portfolio": portfolio, "tax_info": tax_info})
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=1500,
+            temperature=0.6
+        )
         
         # Store tax analysis
         self.db_manager.tax_records.insert_one({
@@ -112,7 +106,7 @@ Please identify:
         # Add to episodic memory
         self.memory_hub.episodic.add_event(
             client_id=portfolio.get("user_id"),
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="tax_optimization"
         )
@@ -126,20 +120,11 @@ class RiskAssessmentAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Risk Assessment Specialist with expertise in:
-- Risk tolerance assessment and profiling
-- Portfolio volatility analysis (standard deviation, beta, VaR)
-- Stress testing and scenario analysis
-- Correlation analysis across assets
-- Drawdown analysis
-- Risk-adjusted return metrics (Sharpe ratio, Sortino ratio)
-- Black swan event preparation
-
-Provide comprehensive risk analysis with clear explanations for non-technical clients."""
-    
     def conduct_risk_assessment(self, portfolio: Dict, client_profile: Dict) -> str:
         """Conduct comprehensive risk assessment"""
+        system_prompt = """You are an expert Risk Assessment Specialist with expertise in portfolio volatility analysis,
+stress testing, and risk-adjusted return metrics. Provide comprehensive analysis with clear explanations."""
+        
         task = f"""Conduct a comprehensive risk assessment:
 
 Portfolio:
@@ -155,7 +140,12 @@ Please provide:
 4. Concentration risk assessment
 5. Risk mitigation recommendations"""
         
-        result = self.execute_task(task, {"portfolio": portfolio, "client_profile": client_profile})
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=1500,
+            temperature=0.6
+        )
         
         # Store risk assessment
         self.db_manager.risk_assessments.insert_one({
@@ -168,7 +158,7 @@ Please provide:
         # Add to episodic memory
         self.memory_hub.episodic.add_event(
             client_id=client_profile.get("user_id"),
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="risk_assessment"
         )
@@ -182,20 +172,11 @@ class MarketResearchAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Market Research Analyst specializing in:
-- Macroeconomic trend analysis
-- Sector rotation strategies
-- Industry and sector performance analysis
-- Market cycle identification
-- Economic indicator interpretation (GDP, inflation, unemployment, interest rates)
-- Global market dynamics
-- Emerging market opportunities
-
-Provide data-driven insights and forward-looking market perspectives."""
-    
     def analyze_market_trends(self, sector: str = None) -> str:
         """Analyze current market trends and provide insights"""
+        system_prompt = """You are an expert Market Research Analyst specializing in macroeconomic trends,
+sector analysis, and market cycle identification. Provide data-driven insights and forward-looking perspectives."""
+        
         task = f"""Provide current market analysis{"for the " + sector + " sector" if sector else ""}:
 
 Please analyze:
@@ -206,7 +187,12 @@ Please analyze:
 5. Investment opportunities and risks
 6. 6-12 month outlook"""
         
-        result = self.execute_task(task, {"sector": sector, "timestamp": datetime.now().isoformat()})
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=1500,
+            temperature=0.7
+        )
         
         # Store market research
         self.db_manager.market_research.insert_one({
@@ -215,10 +201,10 @@ Please analyze:
             "timestamp": datetime.now()
         })
 
-        # Add to episodic memory
+        # Add to episodic memory (using "general" for non-client-specific research)
         self.memory_hub.episodic.add_event(
             client_id="general",
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="market_research"
         )
@@ -232,21 +218,11 @@ class FinancialPlanningAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Financial Planning Specialist with expertise in:
-- Comprehensive financial planning
-- Goal-based investing strategies
-- Retirement planning and projections
-- Education funding (529 plans, etc.)
-- Major purchase planning
-- Cash flow analysis and budgeting
-- Net worth tracking
-- Milestone-based financial roadmaps
-
-Create clear, actionable financial plans with realistic timelines and measurable milestones."""
-    
     def create_financial_plan(self, client_data: Dict, goals: List[Dict], context: Dict) -> str:
         """Create comprehensive financial plan with milestones"""
+        system_prompt = """You are an expert Financial Planning Specialist with expertise in goal-based investing,
+retirement planning, and milestone-based financial roadmaps. Create clear, actionable plans."""
+        
         task = f"""Create a comprehensive financial plan:
 
 Client Data:
@@ -266,7 +242,12 @@ Please provide:
 5. Progress tracking recommendations
 6. Contingency planning"""
         
-        result = self.execute_task(task, {"client_data": client_data, "goals": goals, "context": context})
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=2000,
+            temperature=0.7
+        )
         
         # Store financial plan
         self.db_manager.financial_plans.insert_one({
@@ -279,7 +260,7 @@ Please provide:
         # Add to episodic memory
         self.memory_hub.episodic.add_event(
             client_id=client_data.get("user_id"),
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="financial_plan"
         )
@@ -293,21 +274,11 @@ class ComplianceAgent(BaseFinancialAgent):
     def __init__(self, name: str, role: str, llama_client, db_manager, memory_hub: MemoryHub):
         super().__init__(name, role, llama_client, db_manager, memory_hub)
     
-    def _create_system_prompt(self) -> str:
-        return """You are an expert Compliance Officer specializing in:
-- SEC regulations and compliance
-- FINRA rules and guidelines
-- Fiduciary duty standards
-- Investment advisor regulations
-- Documentation requirements
-- Risk disclosure protocols
-- KYC (Know Your Customer) procedures
-- Anti-money laundering (AML) compliance
-
-Ensure all recommendations meet regulatory requirements and proper disclosures are made."""
-    
     def review_recommendation(self, recommendation: Dict) -> str:
         """Review recommendations for compliance"""
+        system_prompt = """You are an expert Compliance Officer specializing in SEC regulations, FINRA rules,
+and fiduciary duty standards. Ensure all recommendations meet regulatory requirements."""
+        
         task = f"""Review the following recommendation for compliance:
 
 Recommendation:
@@ -321,7 +292,12 @@ Please verify:
 5. Required client acknowledgments
 6. Any compliance concerns or flags"""
         
-        result = self.execute_task(task, {"recommendation": recommendation})
+        result = self.execute_task(
+            prompt=task,
+            system_message=system_prompt,
+            max_tokens=1500,
+            temperature=0.3
+        )
         
         # Store compliance review
         self.db_manager.compliance_logs.insert_one({
@@ -334,7 +310,7 @@ Please verify:
         # Add to episodic memory
         self.memory_hub.episodic.add_event(
             client_id=recommendation.get("client_id"),
-            transcript=result,
+            content=result,
             agent_source=self.name,
             event_type="compliance_review"
         )

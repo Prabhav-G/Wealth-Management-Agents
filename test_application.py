@@ -13,17 +13,16 @@ def run_test_analysis():
 
     # --- Configuration ---
     # We'll test the analysis for Alice Johnson, our young, aggressive investor.
-    client_id_to_test = "client_101"
-
-    # This context simulates the initial user request or the situation that
-    # triggered the analysis.
-    initial_context = {
-        "reason_for_analysis": "Client requested a routine annual portfolio review and check-in on financial goals.",
-        "specific_focus": "Ensure portfolio alignment with aggressive risk tolerance and progress towards home ownership goal."
+    # This dictionary now represents the full client data required by the orchestrator.
+    client_data_to_test = {
+        "profile": {"name": "Alice Johnson", "age": 28, "risk_tolerance": "aggressive", "user_id": "client_101"},
+        "portfolio": {"total_value": 75000, "holdings": {"stocks": 60000, "crypto": 15000}},
+        "goals": [{"name": "Buy a House", "target_amount": 60000, "timeline": "5 years"}]
+        # We can add tax_info here if needed by the tax agent
     }
 
-    print(f"\nClient ID: {client_id_to_test}")
-    print(f"Context: {initial_context['reason_for_analysis']}\n")
+    print(f"\nClient: {client_data_to_test['profile']['name']}")
+    print(f"Client ID: {client_data_to_test['profile']['user_id']}\n")
 
     # --- Initialization ---
     # This creates an instance of the main orchestrator, which in turn
@@ -38,11 +37,17 @@ def run_test_analysis():
 
     # --- Execution ---
     # This is the main call that triggers the entire analysis workflow.
-    # The orchestrator will coordinate the agents to perform their tasks sequentially.
+    # The orchestrator will coordinate the agents to perform their tasks.
     print("\nExecuting comprehensive analysis... This may take a few moments.")
     try:
-        final_report = orchestrator.comprehensive_analysis(client_id_to_test, initial_context)
-        print("Analysis complete. Final report has been generated.")
+        # Correctly call the 'comprehensive_analysis' method with the client_data dictionary.
+        analysis_results = orchestrator.comprehensive_analysis(client_data_to_test)
+        print("Analysis complete. Generating final report.")
+
+        # --- Report Generation ---
+        # The orchestrator can now generate the report from the results.
+        final_report = orchestrator.generate_report(analysis_results)
+
     except Exception as e:
         print(f"An error occurred during the analysis: {e}")
         return
@@ -58,3 +63,4 @@ def run_test_analysis():
 
 if __name__ == "__main__":
     run_test_analysis()
+

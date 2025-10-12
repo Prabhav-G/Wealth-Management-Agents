@@ -2,6 +2,13 @@ from datetime import datetime
 import uuid
 from ai_utils import get_embedding, summarize_text, extract_tags
 
+# In your llama_client.py or config file
+import os
+
+api_key = os.getenv("FIREWORKS_API_KEY")
+if not api_key:
+    raise ValueError("FIREWORKS_API_KEY environment variable not set")
+
 
 class EpisodicMemory:
     def __init__(self, db_manager):

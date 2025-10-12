@@ -1,65 +1,48 @@
-import os
-import time
-import requests
-from dotenv import load_dotenv
-from llama_client import FireworksAIClient
 
-# Load environment variables
-load_dotenv()
-
-# Initialize clients
-fireworks_client = FireworksAIClient()
-VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-
-def robust_post(url: str, headers: dict, payload: dict, max_attempts: int = 3, backoff: float = 2.0):
-    """Robust POST request function with exponential backoff."""
-    attempt = 0
-    while attempt < max_attempts:
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=20)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error on attempt {attempt + 1}: {e}")
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed on attempt {attempt + 1}: {e}")
-        
-        time.sleep(backoff ** attempt)
-        attempt += 1
-    raise ConnectionError(f"Failed to connect to {url} after {max_attempts} attempts.")
+# Import the centrally managed clients from our single source of truth.
+from llama_client import fireworks_client, voyage_client
+import config
 
 def summarize_text(text: str) -> str:
-    """Summarize a block of text using the Fireworks AI model."""
+    """Summarize a block of text using the central Fireworks AI client."""
     prompt = f"Summarize the following text in one or two sentences:\n\n{text}"
-    return fireworks_client.chat_completion([{"role": "user", "content": prompt}])
+    try:
+        response = fireworks_client.chat.completions.create(
+            model=config.FIREWORKS_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=config.DEFAULT_TEMPERATURE,
+            max_tokens=200  # Summaries are short
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"✗ Error during text summarization: {e}")
+        return "" # Return an empty string on failure
 
 def extract_tags(text: str) -> list[str]:
-    """Extract relevant tags from a block of text using Fireworks AI."""
-    prompt = f"Extract the most relevant keywords or tags from the following text. Return them as a comma-separated list. For example: 'tag1, tag2, tag3'\n\nText: {text}"
-    tags_str = fireworks_client.chat_completion([{"role": "user", "content": prompt}])
-    return [tag.strip() for tag in tags_str.split(',')]
+    """Extract relevant tags from a block of text using the central Fireworks AI client."""
+    prompt = f"Extract the most relevant keywords or tags from the following text. Return them as a single comma-separated string, for example: 'tag1, tag2, tag3'.\n\nText: {text}"
+    try:
+        response = fireworks_client.chat.completions.create(
+            model=config.FIREWORKS_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2, # Lower temperature for more deterministic tagging
+            max_tokens=100
+        )
+        tags_str = response.choices[0].message.content.strip().strip('\'"')
+        if not tags_str:
+            return []
+        return [tag.strip() for tag in tags_str.split(',')]
+    except Exception as e:
+        print(f"✗ Error during tag extraction: {e}")
+        return [] # Return an empty list on failure
 
 def get_embedding(text: str, model: str = "voyage-large-2-instruct") -> list[float]:
-    """Get the embedding for a block of text using Voyage AI."""
-    if not VOYAGE_API_KEY:
-        print("Warning: VOYAGE_API_KEY not found. Returning a random embedding.")
-        import random
-        return [random.random() for _ in range(1024)]
-
-    url = "https://api.voyageai.com/v1/embeddings"
-    headers = {
-        "Authorization": f"Bearer {VOYAGE_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {"input": text, "model": model}
-    
+    """Get the embedding for a block of text using the central Voyage AI client."""
     try:
-        response_data = robust_post(url, headers, payload)
-        if "data" in response_data and response_data["data"]:
-            return response_data["data"][0]["embedding"]
-        else:
-            raise ValueError("Invalid response from Voyage AI.")
-    except (ConnectionError, ValueError) as e:
-        print(f"Error fetching embedding: {e}. Falling back to random embedding.")
-        import random
-        return [random.random() for _ in range(1024)]
+        result = voyage_client.embed(texts=[text], model=model)
+        return result.embeddings[0]
+    except Exception as e:
+        print(f"✗ Error fetching embedding from Voyage AI: {e}. Returning a zero vector.")
+        # A zero vector is a safer fallback than a random one.
+        # The dimension for voyage-large-2-instruct is 1024.
+        return [0.0] * 1024
