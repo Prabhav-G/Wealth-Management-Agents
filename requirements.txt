@@ -1,0 +1,10 @@
+
+fastapi
+uvicorn
+pymongo
+voyageai
+python-dotenv
+requests
+llama-index
+llama-index-embeddings-fireworks
+llama-index-llms-fireworks
