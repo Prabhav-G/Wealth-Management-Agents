@@ -1,5 +1,6 @@
 from typing import Dict
 from datetime import datetime
+import time
 # Use Gemini instead of Fireworks
 from gemini_client import GeminiAIClient
 # Import the centralized database manager instance
@@ -101,6 +102,7 @@ class FinancialAdvisoryOrchestrator:
         self.memory_hub.episodic.add_event(client_id, market_analysis, agent_source="market_researcher",
                                             event_type="market_analysis")
         print("✓ Market Research complete")
+        time.sleep(7)
 
         print("\n[2/6] Conducting Risk Assessment (Context Provider)...")
         risk_profile = self.risk_assessor.conduct_risk_assessment(
@@ -112,6 +114,7 @@ class FinancialAdvisoryOrchestrator:
         self.memory_hub.episodic.add_event(client_id, risk_profile, agent_source="risk_assessor",
                                             event_type="risk_assessment")
         print("✓ Risk Assessment complete")
+        time.sleep(7)
 
         # --- PHASE 2: STRATEGY FORMULATION (Collaborative, Downstream) ---
 
@@ -125,6 +128,7 @@ class FinancialAdvisoryOrchestrator:
         self.memory_hub.episodic.add_event(client_id, portfolio_analysis, agent_source="portfolio_manager",
                                             event_type="portfolio_analysis")
         print("✓ Portfolio Analysis complete")
+        time.sleep(7)
 
         print("\n[4/6] Creating Financial Plan (Using Risk & Portfolio Context)...")
         financial_plan = self.financial_planner.create_financial_plan(
@@ -137,6 +141,7 @@ class FinancialAdvisoryOrchestrator:
         self.memory_hub.episodic.add_event(client_id, financial_plan, agent_source="financial_planner",
                                             event_type="financial_planning")
         print("✓ Financial Planning complete")
+        time.sleep(7)
 
         print("\n[5/6] Identifying Tax Opportunities...")
         tax_optimization = self.tax_optimizer.identify_tax_opportunities(
@@ -147,6 +152,7 @@ class FinancialAdvisoryOrchestrator:
         self.memory_hub.episodic.add_event(client_id, tax_optimization, agent_source="tax_optimizer",
                                             event_type="tax_optimization")
         print("✓ Tax Optimization complete")
+        time.sleep(7)
 
         # --- PHASE 3: FINAL REVIEW ---
 

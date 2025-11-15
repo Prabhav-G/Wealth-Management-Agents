@@ -90,6 +90,8 @@ class SemanticMemoryWrapper:
         return [m.get("data") or m.get("memory_value", {}) for m in memories]
 
 
+_EVENTS: List[Dict[str, Any]] = []
+
 class EpisodicMemoryWrapper:
     """Wrapper for episodic memory operations."""
     
@@ -108,14 +110,11 @@ class EpisodicMemoryWrapper:
         Returns:
             List of episodic memory documents
         """
-        from database_manager import MongoDBManager
-        db = MongoDBManager()
-        
-        query = {"client_id": client_id}
+        results = [e for e in _EVENTS if e.get("client_id") == client_id]
         if event_type:
-            query["event_type"] = event_type
-        
-        return list(db.db.episodic_memories.find(query).sort("timestamp", -1).limit(limit))
+            results = [e for e in results if e.get("event_type") == event_type]
+        results.sort(key=lambda e: e.get("timestamp") or datetime.utcnow(), reverse=True)
+        return results[:limit]
     
     def search(self, client_id: str, query_text: str, top_k: int = 5) -> List[Dict]:
         """
@@ -129,23 +128,9 @@ class EpisodicMemoryWrapper:
         Returns:
             List of relevant episodic memories
         """
-        try:
-            from episodic_memory import episodic_memory
-            from database_manager import MongoDBManager
-            
-            db = MongoDBManager()
-            manager = episodic_memory.EpisodicMemory(db)
-            
-            if hasattr(manager, 'search_episodes'):
-                return manager.search_episodes(client_id, query_text, top_k)
-            elif hasattr(manager, 'retrieve_relevant_episodes'):
-                return manager.retrieve_relevant_episodes(client_id, query_text, top_k)
-            else:
-                # Fallback: just return recent episodes
-                return self.retrieve(client_id, limit=top_k)
-        except Exception as e:
-            print(f"⚠ Warning: Episodic search failed, using fallback. Error: {e}")
-            return self.retrieve(client_id, limit=top_k)
+        # Simple text contains search in in-memory events
+        results = [e for e in _EVENTS if e.get("client_id") == client_id and query_text.lower() in str(e.get("transcript", "")).lower()]
+        return results[:top_k]
     
     def add(self, client_id: str, event_type: str, transcript: str, 
             timestamp: datetime = None, agent_source: str = None) -> str:
@@ -162,23 +147,14 @@ class EpisodicMemoryWrapper:
         Returns:
             ID of created memory
         """
-        try:
-            from episodic_memory import episodic_memory
-            from database_manager import MongoDBManager
-            
-            db = MongoDBManager()
-            manager = episodic_memory.EpisodicMemory(db)
-            
-            result = manager.add_event(
-                client_id=client_id,
-                event_type=event_type,
-                transcript=transcript,
-                timestamp=timestamp or datetime.utcnow()
-            )
-            return str(result.get("_id", ""))
-        except Exception as e:
-            print(f"⚠ Warning: Could not add episodic memory: {e}")
-            return ""
+        event = {
+            "client_id": client_id,
+            "event_type": event_type,
+            "transcript": transcript,
+            "timestamp": timestamp or datetime.utcnow(),
+        }
+        _EVENTS.append(event)
+        return str(len(_EVENTS))
     
     def add_event(self, client_id: str, content: str, agent_source: str = None, 
                   event_type: str = "analysis", timestamp: datetime = None, **kwargs) -> str:

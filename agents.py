@@ -15,7 +15,7 @@ class PortfolioManagerAgent(BaseFinancialAgent):
         """Analyze existing portfolio and provide recommendations"""
         system_prompt = """You are an expert Portfolio Manager specializing in investment strategy and asset allocation.
 Your expertise includes modern portfolio theory, risk-return optimization, and diversification strategies.
-Provide detailed, actionable investment recommendations."""
+Provide detailed, actionable asset allocation guidance and example instruments for educational purposes only."""
         
         # Search for relevant investment strategies using Linkup
         search_results = []
@@ -43,7 +43,7 @@ Provide detailed, actionable investment recommendations."""
                 search_context += f"   {result.get('snippet', result.get('description', ''))[:200]}\n"
                 search_context += f"   Source: {result.get('url', 'N/A')}\n\n"
         
-        task = f"""Analyze the following portfolio and provide comprehensive recommendations:
+        task = f"""Analyze the following portfolio and provide comprehensive recommendations for educational use:
         
 Portfolio Data:
 {json.dumps(portfolio_data, indent=2)}
@@ -58,7 +58,9 @@ Please provide:
 3. Rebalancing recommendations
 4. Diversification improvements
 5. Expected returns and risk metrics
-6. Reference the relevant investment strategies found above where applicable"""
+6. A target allocation with example ETFs or indices (no personalized advice)
+7. Reference the relevant investment strategies found above where applicable
+8. Include a brief disclaimer that this is not investment advice"""
         
         # FIXED: Call execute_task with proper keyword arguments
         result = self.execute_task(

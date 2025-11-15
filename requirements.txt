@@ -10,3 +10,4 @@ voyageai
 llama-index
 llama-index-embeddings-fireworks
 llama-index-llms-fireworks
+fireworks

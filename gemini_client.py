@@ -4,6 +4,11 @@ Replaces Fireworks/Llama for LLM operations
 """
 import os
 import google.generativeai as genai
+try:
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+except Exception:
+    HarmCategory = None
+    HarmBlockThreshold = None
 from typing import List, Dict, Optional
 
 _gemini_client = None
@@ -28,7 +33,9 @@ def _initialize_gemini():
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        _gemini_client = genai.GenerativeModel('gemini-pro')
+        import config
+        model_id = config.GEMINI_MODEL if config.GEMINI_MODEL.startswith("models/") else f"models/{config.GEMINI_MODEL}"
+        _gemini_client = genai.GenerativeModel(model_id)
         _gemini_initialized = True
         print("✓ Gemini AI client initialized successfully.")
     except Exception as e:
@@ -41,11 +48,12 @@ def get_gemini_client():
         _initialize_gemini()
     return _gemini_client
 
-def get_gemini_model(model_name: str = "gemini-pro"):
+def get_gemini_model(model_name: str = "gemini-1.0-pro"):
     """Get a specific Gemini model."""
     if not _gemini_initialized:
         _initialize_gemini()
-    return genai.GenerativeModel(model_name)
+    name = model_name if model_name.startswith("models/") else f"models/{model_name}"
+    return genai.GenerativeModel(name)
 
 class GeminiAIClient:
     """Wrapper class for Gemini AI client (for backwards compatibility)."""
@@ -74,49 +82,46 @@ class GeminiAIClient:
             str: The model's response content
         """
         try:
-            # Convert messages format for Gemini
-            # Build a combined prompt from messages
-            prompt_parts = []
+            # Build system instruction and user content
             system_message = None
-            
+            prompt_parts = []
             for msg in messages:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
-                
                 if role == "system":
                     system_message = content
                 elif role == "user":
-                    if system_message:
-                        # Include system message before user message
-                        prompt_parts.append(f"{system_message}\n\n{content}")
-                        system_message = None  # Only use once
-                    else:
-                        prompt_parts.append(content)
+                    prompt_parts.append(content)
                 elif role == "assistant":
                     prompt_parts.append(f"Previous response: {content}")
-            
-            # Combine all parts
             full_prompt = "\n\n".join(prompt_parts)
-            if system_message:
-                full_prompt = f"{system_message}\n\n{full_prompt}"
-            
-            # Generate configuration
+
+            # Create a temporary model with system_instruction
+            import config
+            model_id = config.GEMINI_MODEL if str(config.GEMINI_MODEL).startswith("models/") else f"models/{config.GEMINI_MODEL}"
+            tmp_model = genai.GenerativeModel(model_id, system_instruction=system_message or None)
+
+            # Generation configuration
             generation_config = {}
             if temperature is not None:
                 generation_config["temperature"] = min(max(temperature, 0.0), 1.0)
             if max_tokens is not None:
                 generation_config["max_output_tokens"] = max_tokens
-            
-            # Generate response
-            if generation_config:
-                response = self.model.generate_content(
-                    full_prompt,
-                    generation_config=generation_config
-                )
-            else:
-                response = self.model.generate_content(full_prompt)
-            
-            return response.text if hasattr(response, 'text') else str(response)
+
+            contents = [{"role": "user", "parts": [full_prompt]}]
+            response = tmp_model.generate_content(contents, generation_config=generation_config) if generation_config else tmp_model.generate_content(contents)
+
+            try:
+                return response.text
+            except Exception:
+                parts = []
+                for c in getattr(response, 'candidates', []) or []:
+                    content = getattr(c, 'content', None)
+                    for p in getattr(content, 'parts', []) or []:
+                        t = getattr(p, 'text', None)
+                        if t:
+                            parts.append(t)
+                return "\n".join(parts)
             
         except Exception as e:
             print(f"✗ Error in Gemini chat completion: {e}")

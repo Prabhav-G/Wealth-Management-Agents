@@ -7,10 +7,16 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+    <canvas id="background-coins"></canvas>
     <div class="container">
-        <header>
-            <h1>💰 Financial Advisory System</h1>
-            <p class="subtitle">AI-Powered Investment Strategy Generator</p>
+        <header class="app-header">
+            <div class="header-left">
+                <h1>💰 Financial Advisory System</h1>
+                <p class="subtitle">AI-Powered Investment Strategy Generator</p>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" class="btn-secondary" title="Toggle theme">🌙 Dark Mode</button>
+            </div>
         </header>
 
         <div id="form-section" class="form-section">
@@ -159,6 +165,9 @@
                 </section>
 
                 <div class="form-actions">
+                    <div class="progress-wrapper">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
                     <button type="submit" id="submit-btn" class="btn-primary">
                         <span id="submit-text">Generate Investment Strategy</span>
                         <span id="loading-spinner" class="spinner" style="display: none;"></span>
@@ -173,7 +182,7 @@
                 <h2>📈 Your Investment Strategy</h2>
                 <button id="back-btn" class="btn-secondary">← Back to Form</button>
             </div>
-            <div id="results-content"></div>
+            <div id="results-content" class="fade-in"></div>
         </div>
     </div>
 

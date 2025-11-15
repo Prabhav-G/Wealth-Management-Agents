@@ -9,6 +9,13 @@ const loadingSpinner = document.getElementById('loading-spinner');
 const addGoalBtn = document.getElementById('add-goal-btn');
 const backBtn = document.getElementById('back-btn');
 const goalsContainer = document.getElementById('goals-container');
+const themeToggle = document.getElementById('theme-toggle');
+const progressBar = document.getElementById('progress-bar');
+const coinsCanvas = document.getElementById('background-coins');
+let coinsCtx;
+let coins = [];
+let coinsAnimId = null;
+let coinsRunning = false;
 
 // Add goal functionality
 addGoalBtn.addEventListener('click', () => {
@@ -64,6 +71,7 @@ form.addEventListener('submit', async (e) => {
     
     // Show loading state
     setLoadingState(true);
+    startProgress();
     
     try {
         // Call API
@@ -97,6 +105,7 @@ form.addEventListener('submit', async (e) => {
         showError(error.message);
     } finally {
         setLoadingState(false);
+        completeProgress();
     }
 });
 
@@ -105,6 +114,7 @@ backBtn.addEventListener('click', () => {
     resultsSection.style.display = 'none';
     formSection.style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    resetProgress();
 });
 
 // Collect form data
@@ -313,6 +323,32 @@ function setLoadingState(loading) {
     }
 }
 
+// Progress bar controls
+let progressTimer;
+function startProgress() {
+    resetProgress();
+    let pct = 0;
+    progressBar.style.width = '0%';
+    progressTimer = setInterval(() => {
+        // Ease up to 90%
+        pct = Math.min(90, pct + Math.max(1, 8 - Math.floor(pct / 15)));
+        progressBar.style.width = pct + '%';
+    }, 250);
+}
+
+function completeProgress() {
+    clearInterval(progressTimer);
+    progressBar.style.width = '100%';
+    setTimeout(() => {
+        progressBar.style.width = '0%';
+    }, 800);
+}
+
+function resetProgress() {
+    clearInterval(progressTimer);
+    progressBar.style.width = '0%';
+}
+
 // Show error
 function showError(message) {
     resultsContent.innerHTML = `
@@ -335,4 +371,104 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Theme toggle
+themeToggle.addEventListener('click', () => {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    if (next === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = '🌞 Light Mode';
+        startCoins();
+    } else {
+        document.body.removeAttribute('data-theme');
+        themeToggle.textContent = '🌙 Dark Mode';
+        stopCoins();
+    }
+    try {
+        localStorage.setItem('theme', next);
+    } catch (e) {}
+});
+
+// Initialize theme
+(function initTheme() {
+    try {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '🌞 Light Mode';
+            startCoins();
+        }
+    } catch (e) {}
+})();
+
+function startCoins() {
+    if (!coinsCanvas) return;
+    if (coinsRunning) return;
+    coinsCanvas.width = window.innerWidth;
+    coinsCanvas.height = window.innerHeight;
+    coinsCtx = coinsCanvas.getContext('2d');
+    coins = createCoins();
+    coinsRunning = true;
+    animateCoins(performance.now());
+}
+
+function stopCoins() {
+    coinsRunning = false;
+    if (coinsAnimId) cancelAnimationFrame(coinsAnimId);
+    coinsAnimId = null;
+    if (coinsCtx) {
+        coinsCtx.clearRect(0, 0, coinsCanvas.width, coinsCanvas.height);
+    }
+}
+
+function createCoins() {
+    const count = Math.min(80, Math.max(40, Math.floor(window.innerWidth * window.innerHeight / 35000)));
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+        const r = Math.random() * 10 + 6;
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+        const phase = Math.random() * Math.PI * 2;
+        const speed = 0.8 + Math.random() * 1.6;
+        arr.push({ x, y, r, phase, speed });
+    }
+    return arr;
+}
+
+function drawCoin(c) {
+    const g = coinsCtx.createRadialGradient(c.x, c.y, c.r * 0.2, c.x, c.y, c.r);
+    g.addColorStop(0, 'rgba(255, 215, 0, 0.95)');
+    g.addColorStop(0.4, 'rgba(255, 200, 0, 0.85)');
+    g.addColorStop(1, 'rgba(184, 134, 11, 0.6)');
+    coinsCtx.fillStyle = g;
+    coinsCtx.beginPath();
+    coinsCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    coinsCtx.fill();
+    coinsCtx.lineWidth = 1;
+    coinsCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    coinsCtx.stroke();
+}
+
+function animateCoins(t) {
+    if (!coinsRunning) return;
+    coinsAnimId = requestAnimationFrame(animateCoins);
+    coinsCtx.clearRect(0, 0, coinsCanvas.width, coinsCanvas.height);
+    coinsCtx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < coins.length; i++) {
+        const c = coins[i];
+        const tw = 0.6 + 0.4 * Math.sin(c.phase + t * 0.001 * c.speed);
+        coinsCtx.save();
+        coinsCtx.globalAlpha = tw;
+        drawCoin(c);
+        coinsCtx.restore();
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (!coinsRunning) return;
+    coinsCanvas.width = window.innerWidth;
+    coinsCanvas.height = window.innerHeight;
+    coins = createCoins();
+});
 

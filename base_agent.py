@@ -96,12 +96,34 @@ class BaseFinancialAgent:
                 {"role": "user", "content": prompt}
             ]
             
-            response = gemini_client.chat_completion(
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
-            return response
+            import time
+            attempts = 0
+            last_error = None
+            while attempts < 3:
+                try:
+                    response = gemini_client.chat_completion(
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature
+                    )
+                    if isinstance(response, str) and response.strip():
+                        return response
+                    raise Exception("Empty response from Gemini")
+                except Exception as ge:
+                    last_error = ge
+                    msg = str(ge)
+                    if "429" in msg or "rate limit" in msg.lower():
+                        time.sleep(7)
+                        attempts += 1
+                        continue
+                    if "Empty response from Gemini" in msg:
+                        messages[1]["content"] = messages[1]["content"] + "\n\nIf you cannot provide specific outputs, return a concise educational summary with 8-12 bullet points and avoid personalized advice."
+                        temperature = 0.3
+                        attempts += 1
+                        time.sleep(2)
+                        continue
+                    break
+            return f"Error: Could not complete task. {last_error}"
             
         except Exception as e:
             error_msg = f"✗ Error in {self.name} executing task: {e}"

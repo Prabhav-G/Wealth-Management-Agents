@@ -30,7 +30,7 @@ if not LINKUP_API_KEY:
     print("⚠ WARNING: LINKUP_API_KEY not found. Set it in .env file for web searching.")
 
 # ===== Gemini AI Settings =====
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1"
 
 # ===== Fastino Settings =====

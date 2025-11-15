@@ -69,7 +69,8 @@ class FastinoManager:
 
     def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make HTTP request to Fastino API."""
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        base = self.base_url if isinstance(self.base_url, str) else self.client.get("base_url", "https://api.fastino.com/v1")
+        url = f"{base.rstrip('/')}/{str(endpoint).lstrip('/')}"
         
         try:
             if method.upper() == "GET":
@@ -203,16 +204,19 @@ class FastinoCollection:
             print(f"⚠ Warning: Fastino insert_one failed for {self.collection_name}: {e}")
             return {"inserted_id": "mock_id", "acknowledged": True}
     
-    def update_one(self, query: Dict, update: Dict) -> Dict:
-        """Update one document."""
+    def update_one(self, query: Dict, update: Dict, upsert: bool = False) -> Dict:
         try:
             user_id = query.get("user_id") or query.get("client_id")
+            update_data = update.get("$set", update)
             if user_id:
-                update_data = update.get("$set", update)
-                return self.manager._make_request("PUT", f"{self.collection_name}/{user_id}", update_data)
-            else:
-                # For collections without user_id, try update by query
-                return self.manager._make_request("POST", f"{self.collection_name}/update", {"query": query, "update": update.get("$set", update)})
+                try:
+                    return self.manager._make_request("PUT", f"{self.collection_name}/{user_id}", update_data)
+                except Exception:
+                    if upsert:
+                        doc = {**update_data, "user_id": user_id}
+                        return self.manager._make_request("POST", f"{self.collection_name}/{user_id}", doc)
+                    raise
+            return self.manager._make_request("POST", f"{self.collection_name}/update", {"query": query, "update": update_data, "upsert": upsert})
         except Exception as e:
             print(f"⚠ Warning: Fastino update_one failed for {self.collection_name}: {e}")
             return {"matched_count": 1, "modified_count": 1, "acknowledged": True}
