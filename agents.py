@@ -17,6 +17,32 @@ class PortfolioManagerAgent(BaseFinancialAgent):
 Your expertise includes modern portfolio theory, risk-return optimization, and diversification strategies.
 Provide detailed, actionable investment recommendations."""
         
+        # Search for relevant investment strategies using Linkup
+        search_results = []
+        if self.linkup_client:
+            try:
+                profile = context.get('client_profile', {})
+                risk_tolerance = profile.get('risk_tolerance', 'moderate')
+                investment_timeline = profile.get('investment_timeline', '10 years')
+                total_value = portfolio_data.get('total_value', 0)
+                
+                search_results = self.linkup_client.search_investment_strategies(
+                    risk_tolerance=risk_tolerance,
+                    investment_timeline=investment_timeline,
+                    portfolio_value=total_value
+                )
+            except Exception as e:
+                print(f"⚠ Warning: Linkup search failed: {e}")
+        
+        # Include search results in the prompt
+        search_context = ""
+        if search_results:
+            search_context = "\n\nRelevant Investment Strategies Found:\n"
+            for i, result in enumerate(search_results[:5], 1):  # Top 5 results
+                search_context += f"{i}. {result.get('title', 'N/A')}\n"
+                search_context += f"   {result.get('snippet', result.get('description', ''))[:200]}\n"
+                search_context += f"   Source: {result.get('url', 'N/A')}\n\n"
+        
         task = f"""Analyze the following portfolio and provide comprehensive recommendations:
         
 Portfolio Data:
@@ -24,13 +50,15 @@ Portfolio Data:
 
 Context:
 {json.dumps(context, indent=2)}
+{search_context}
 
 Please provide:
 1. Current allocation analysis
 2. Risk-adjusted performance assessment
 3. Rebalancing recommendations
 4. Diversification improvements
-5. Expected returns and risk metrics"""
+5. Expected returns and risk metrics
+6. Reference the relevant investment strategies found above where applicable"""
         
         # FIXED: Call execute_task with proper keyword arguments
         result = self.execute_task(
@@ -73,6 +101,28 @@ class TaxOptimizationAgent(BaseFinancialAgent):
         system_prompt = """You are an expert Tax Optimization Specialist with deep knowledge of tax-loss harvesting,
 capital gains management, and tax-efficient strategies. Provide specific, actionable recommendations."""
         
+        # Search for tax strategies using Linkup
+        search_results = []
+        if self.linkup_client:
+            try:
+                tax_bracket = tax_info.get('tax_bracket', '')
+                state = tax_info.get('state', '')
+                search_results = self.linkup_client.search_tax_strategies(
+                    tax_bracket=tax_bracket,
+                    state=state
+                )
+            except Exception as e:
+                print(f"⚠ Warning: Linkup search failed: {e}")
+        
+        # Include search results in the prompt
+        search_context = ""
+        if search_results:
+            search_context = "\n\nRelevant Tax Strategies Found:\n"
+            for i, result in enumerate(search_results[:5], 1):  # Top 5 results
+                search_context += f"{i}. {result.get('title', 'N/A')}\n"
+                search_context += f"   {result.get('snippet', result.get('description', ''))[:200]}\n"
+                search_context += f"   Source: {result.get('url', 'N/A')}\n\n"
+        
         task = f"""Identify tax optimization opportunities:
 
 Portfolio Holdings:
@@ -80,13 +130,16 @@ Portfolio Holdings:
 
 Tax Information:
 {json.dumps(tax_info, indent=2)}
+{search_context}
 
 Please identify:
 1. Tax-loss harvesting opportunities
 2. Capital gains optimization strategies
 3. Asset location optimization
 4. Estimated tax savings
-5. Implementation timeline"""
+5. Implementation timeline
+
+Reference the tax strategies found above where applicable."""
         
         result = self.execute_task(
             prompt=task,
@@ -177,7 +230,25 @@ class MarketResearchAgent(BaseFinancialAgent):
         system_prompt = """You are an expert Market Research Analyst specializing in macroeconomic trends,
 sector analysis, and market cycle identification. Provide data-driven insights and forward-looking perspectives."""
         
+        # Search for current market trends using Linkup
+        search_results = []
+        if self.linkup_client:
+            try:
+                search_results = self.linkup_client.search_market_trends(sector=sector)
+            except Exception as e:
+                print(f"⚠ Warning: Linkup search failed: {e}")
+        
+        # Include search results in the prompt
+        search_context = ""
+        if search_results:
+            search_context = "\n\nCurrent Market Information Found:\n"
+            for i, result in enumerate(search_results[:5], 1):  # Top 5 results
+                search_context += f"{i}. {result.get('title', 'N/A')}\n"
+                search_context += f"   {result.get('snippet', result.get('description', ''))[:200]}\n"
+                search_context += f"   Source: {result.get('url', 'N/A')}\n\n"
+        
         task = f"""Provide current market analysis{"for the " + sector + " sector" if sector else ""}:
+{search_context}
 
 Please analyze:
 1. Current economic environment and key trends
@@ -185,7 +256,9 @@ Please analyze:
 3. Interest rate impact
 4. Inflation considerations
 5. Investment opportunities and risks
-6. 6-12 month outlook"""
+6. 6-12 month outlook
+
+Use the market information found above to inform your analysis."""
         
         result = self.execute_task(
             prompt=task,

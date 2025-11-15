@@ -3,8 +3,19 @@ Base Agent class for all financial advisory agents.
 Provides common functionality for LLM interaction and memory access.
 """
 
-from typing import Optional, Dict, Any
-from database_manager import MongoDBManager
+from typing import Optional, Dict, Any, List
+# Support both Fastino and MongoDB for backwards compatibility
+try:
+    from fastino_client import get_fastino_manager
+    FASTINO_AVAILABLE = True
+except ImportError:
+    FASTINO_AVAILABLE = False
+
+try:
+    from database_manager import MongoDBManager
+    MONGODB_AVAILABLE = True
+except (ImportError, ValueError):
+    MONGODB_AVAILABLE = False
 
 
 class BaseFinancialAgent:
@@ -18,7 +29,7 @@ class BaseFinancialAgent:
         name: str, 
         role: str, 
         llama_client=None,  # Accept but ignore for backwards compatibility
-        db_manager: MongoDBManager = None,
+        db_manager=None,  # Can be Fastino or MongoDB manager
         memory_hub: Optional[Any] = None
     ):
         """
@@ -27,14 +38,22 @@ class BaseFinancialAgent:
         Args:
             name: Agent name
             role: Agent role/description
-            llama_client: Legacy parameter (ignored, uses centralized client)
-            db_manager: MongoDB database manager
+            llama_client: Legacy parameter (ignored, uses Gemini)
+            db_manager: Database manager (Fastino or MongoDB)
             memory_hub: Optional memory hub for accessing memory systems
         """
         self.name = name
         self.role = role
         self.db_manager = db_manager
         self.memory_hub = memory_hub
+        
+        # Initialize Linkup search client for web searching
+        try:
+            from linkup_client import get_linkup_search_client
+            self.linkup_client = get_linkup_search_client()
+        except (ImportError, ValueError) as e:
+            print(f"⚠ Warning: Linkup client not available: {e}")
+            self.linkup_client = None
         
         print(f"✓ Initialized agent: {name}")
     
@@ -46,7 +65,7 @@ class BaseFinancialAgent:
         system_message: Optional[str] = None
     ) -> str:
         """
-        Execute a task using the centralized Fireworks AI client.
+        Execute a task using Google Gemini AI.
         
         Args:
             prompt: The user prompt
@@ -59,10 +78,10 @@ class BaseFinancialAgent:
         """
         try:
             # Import lazily to avoid circular dependencies
-            from llama_client import get_fireworks_client
+            from gemini_client import GeminiAIClient
             import config
             
-            fireworks_client = get_fireworks_client()
+            gemini_client = GeminiAIClient(model_name=config.GEMINI_MODEL)
             
             # Ensure max_tokens is an integer
             max_tokens = int(max_tokens) if max_tokens else 1024
@@ -77,18 +96,37 @@ class BaseFinancialAgent:
                 {"role": "user", "content": prompt}
             ]
             
-            response = fireworks_client.chat.completions.create(
-                model=config.FIREWORKS_MODEL,
+            response = gemini_client.chat_completion(
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature
             )
-            return response.choices[0].message.content
+            return response
             
         except Exception as e:
             error_msg = f"✗ Error in {self.name} executing task: {e}"
             print(error_msg)
             return f"Error: Could not complete task. {e}"
+    
+    def search_web(self, query: str, max_results: int = 10) -> List[Dict]:
+        """
+        Search the web using Linkup for investment strategies and information.
+        
+        Args:
+            query: Search query
+            max_results: Maximum number of results
+        
+        Returns:
+            List of search results
+        """
+        if not self.linkup_client:
+            return []
+        
+        try:
+            return self.linkup_client.search(query, max_results=max_results)
+        except Exception as e:
+            print(f"⚠ Warning: Web search failed: {e}")
+            return []
     
     def get_client_context(self, client_id: str) -> Dict[str, Any]:
         """

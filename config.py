@@ -10,22 +10,40 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 # ===== API Keys =====
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+FASTINO_API_KEY = os.getenv("FASTINO_API_KEY")
+LINKUP_API_KEY = os.getenv("LINKUP_API_KEY")
+
+# Optional: Legacy keys (for backwards compatibility during migration)
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 MONGODB_URL = os.getenv("MONGODB_URL")
 
-# Validate critical keys
-if not FIREWORKS_API_KEY:
-    raise ValueError("FIREWORKS_API_KEY not found in environment variables. Check your .env file.")
+# Validate critical keys (warn but don't fail if not set - allows lazy initialization)
+if not GEMINI_API_KEY:
+    print("⚠ WARNING: GEMINI_API_KEY not found. Set it in .env file for LLM functionality.")
 
-if not MONGODB_URL:
-    raise ValueError("MONGODB_URI not found in environment variables. Check your .env file.")
+if not FASTINO_API_KEY:
+    print("⚠ WARNING: FASTINO_API_KEY not found. Set it in .env file for user profiles.")
 
-# ===== Fireworks AI Settings =====
+if not LINKUP_API_KEY:
+    print("⚠ WARNING: LINKUP_API_KEY not found. Set it in .env file for web searching.")
+
+# ===== Gemini AI Settings =====
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1"
+
+# ===== Fastino Settings =====
+FASTINO_BASE_URL = os.getenv("FASTINO_BASE_URL", "https://api.fastino.com/v1")
+
+# ===== Linkup Settings =====
+LINKUP_BASE_URL = os.getenv("LINKUP_BASE_URL", "https://api.linkup.com/v1")
+
+# ===== Legacy Fireworks AI Settings (deprecated) =====
 FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
 FIREWORKS_MODEL = "accounts/fireworks/models/llama-v3p1-8b-instruct"
 
-# ===== Voyage AI Settings =====
+# ===== Legacy Voyage AI Settings (deprecated) =====
 VOYAGE_MODEL = "voyage-3"
 VOYAGE_INPUT_TYPE = "document"
 
@@ -45,6 +63,9 @@ PROCEDURAL_COLLECTION = "procedural_memories"
 EPISODIC_VECTOR_INDEX = "episodic_vector_index"
 
 print("✓ Configuration loaded successfully")
-print(f"  - Fireworks API Key: {'✓ Set' if FIREWORKS_API_KEY else '✗ Missing'}")
-print(f"  - Voyage API Key: {'✓ Set' if VOYAGE_API_KEY else '✗ Missing'}")
-print(f"  - MongoDB URI: {'✓ Set' if MONGODB_URL else '✗ Missing'}")
+print(f"  - Gemini API Key: {'✓ Set' if GEMINI_API_KEY else '✗ Missing'}")
+print(f"  - Fastino API Key: {'✓ Set' if FASTINO_API_KEY else '✗ Missing'}")
+print(f"  - Linkup API Key: {'✓ Set' if LINKUP_API_KEY else '✗ Missing'}")
+if FIREWORKS_API_KEY or MONGODB_URL:
+    print(f"  - Legacy Fireworks API Key: {'✓ Set' if FIREWORKS_API_KEY else '✗ Missing'}")
+    print(f"  - Legacy MongoDB URI: {'✓ Set' if MONGODB_URL else '✗ Missing'}")

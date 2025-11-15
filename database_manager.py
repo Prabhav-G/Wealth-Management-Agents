@@ -1,13 +1,82 @@
-from typing import Dict
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, OperationFailure
+from typing import Dict, Optional
 import os
 from dotenv import load_dotenv
-import certifi
 
 # Load environment variables from .env file at the module level
 load_dotenv()
 
+# Try to import Fastino first (preferred)
+try:
+    from fastino_client import get_fastino_manager
+    FASTINO_AVAILABLE = True
+except (ImportError, ValueError):
+    FASTINO_AVAILABLE = False
+
+# MongoDB as fallback
+try:
+    from pymongo import MongoClient
+    from pymongo.errors import ConnectionFailure, OperationFailure
+    import certifi
+    MONGODB_AVAILABLE = True
+except ImportError:
+    MONGODB_AVAILABLE = False
+
+class DatabaseManager:
+    """Unified database manager that uses Fastino by default, MongoDB as fallback."""
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(DatabaseManager, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        # Use object.__setattr__ to avoid triggering __getattr__
+        object.__setattr__(self, 'initialized', False)
+        
+        if hasattr(self, 'initialized') and self.initialized:
+            return
+
+        # Try Fastino first
+        if FASTINO_AVAILABLE:
+            try:
+                manager = get_fastino_manager()
+                object.__setattr__(self, 'manager', manager)
+                object.__setattr__(self, 'db_type', "fastino")
+                object.__setattr__(self, 'initialized', True)
+                print("✓ Using Fastino for user profiles")
+                return
+            except Exception as e:
+                print(f"⚠ Fastino initialization failed: {e}")
+                print("  Falling back to MongoDB...")
+
+        # Fallback to MongoDB
+        if MONGODB_AVAILABLE:
+            try:
+                manager = MongoDBManager()
+                object.__setattr__(self, 'manager', manager)
+                object.__setattr__(self, 'db_type', "mongodb")
+                object.__setattr__(self, 'initialized', True)
+                print("✓ Using MongoDB (fallback)")
+                return
+            except Exception as e:
+                print(f"⚠ MongoDB initialization failed: {e}")
+
+        # If both fail, raise error
+        raise ValueError(
+            "Neither Fastino nor MongoDB could be initialized. "
+            "Please set FASTINO_API_KEY or MONGODB_URL in your .env file."
+        )
+
+    def __getattr__(self, name):
+        """Delegate to the underlying manager, but avoid recursion."""
+        # Check if we have the manager attribute directly
+        if 'manager' in self.__dict__:
+            return getattr(self.__dict__['manager'], name)
+        # If manager doesn't exist, raise AttributeError
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+# Legacy MongoDBManager for backwards compatibility
 class MongoDBManager:
     """Manages a singleton MongoDB connection."""
     _instance = None
@@ -121,4 +190,13 @@ class MongoDBManager:
             print("  Please ensure you are connected to a MongoDB Atlas cluster with search nodes enabled.")
 
 # Instantiate a singleton connection object that can be imported across the application
-mongo_db_manager = MongoDBManager()
+# Uses Fastino by default, MongoDB as fallback
+try:
+    mongo_db_manager = DatabaseManager()
+except ValueError:
+    # If DatabaseManager fails, try MongoDB directly for backwards compatibility
+    try:
+        mongo_db_manager = MongoDBManager()
+    except Exception:
+        mongo_db_manager = None
+        print("⚠ Warning: No database manager available. Some features may not work.")

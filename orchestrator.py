@@ -1,6 +1,7 @@
 from typing import Dict
 from datetime import datetime
-from llama_client import FireworksAIClient
+# Use Gemini instead of Fireworks
+from gemini_client import GeminiAIClient
 # Import the centralized database manager instance
 from database_manager import mongo_db_manager
 from memory_hub import MemoryHub
@@ -19,8 +20,9 @@ class FinancialAdvisoryOrchestrator:
     def __init__(self):
         """Initialize the orchestrator with all agents"""
 
-        self.llama_client = FireworksAIClient()
-        # Use the pre-initialized database manager
+        # Use Gemini instead of Fireworks
+        self.llama_client = GeminiAIClient()  # For backwards compatibility
+        # Use the pre-initialized database manager (Fastino or MongoDB)
         self.db_manager = mongo_db_manager
         self.memory_hub = MemoryHub(self.db_manager)  # Pass db_manager to MemoryHub
 

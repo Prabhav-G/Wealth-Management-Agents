@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Advisory System - Investment Strategy Generator</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Financial Advisory System</h1>
+            <p class="subtitle">AI-Powered Investment Strategy Generator</p>
+        </header>
+
+        <div id="form-section" class="form-section">
+            <form id="investment-form">
+                <!-- Profile Section -->
+                <section class="form-group">
+                    <h2>👤 Personal Profile</h2>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="user_id">User ID *</label>
+                            <input type="text" id="user_id" name="user_id" required placeholder="e.g., client_001">
+                        </div>
+                        <div class="form-field">
+                            <label for="name">Full Name *</label>
+                            <input type="text" id="name" name="name" required placeholder="John Doe">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="age">Age *</label>
+                            <input type="number" id="age" name="age" required min="18" max="100" placeholder="45">
+                        </div>
+                        <div class="form-field">
+                            <label for="income">Annual Income ($) *</label>
+                            <input type="number" id="income" name="income" required min="0" placeholder="150000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="risk_tolerance">Risk Tolerance *</label>
+                            <select id="risk_tolerance" name="risk_tolerance" required>
+                                <option value="">Select risk tolerance</option>
+                                <option value="conservative">Conservative</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="aggressive">Aggressive</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="investment_timeline">Investment Timeline *</label>
+                            <input type="text" id="investment_timeline" name="investment_timeline" required placeholder="e.g., 15 years">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Portfolio Section -->
+                <section class="form-group">
+                    <h2>💼 Current Portfolio</h2>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="total_value">Total Portfolio Value ($) *</label>
+                            <input type="number" id="total_value" name="total_value" required min="0" placeholder="500000">
+                        </div>
+                        <div class="form-field">
+                            <label for="risk_score">Risk Score (0-10)</label>
+                            <input type="number" id="risk_score" name="risk_score" min="0" max="10" step="0.1" placeholder="6.5">
+                        </div>
+                    </div>
+                    <h3>Holdings Breakdown</h3>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="stocks">Stocks ($)</label>
+                            <input type="number" id="stocks" name="stocks" min="0" placeholder="300000">
+                        </div>
+                        <div class="form-field">
+                            <label for="bonds">Bonds ($)</label>
+                            <input type="number" id="bonds" name="bonds" min="0" placeholder="150000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="cash">Cash ($)</label>
+                            <input type="number" id="cash" name="cash" min="0" placeholder="50000">
+                        </div>
+                        <div class="form-field">
+                            <label for="crypto">Cryptocurrency ($)</label>
+                            <input type="number" id="crypto" name="crypto" min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="other_holdings">Other Holdings ($)</label>
+                            <input type="number" id="other_holdings" name="other_holdings" min="0" placeholder="0">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tax Information Section -->
+                <section class="form-group">
+                    <h2>📊 Tax Information</h2>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="tax_bracket">Tax Bracket</label>
+                            <input type="text" id="tax_bracket" name="tax_bracket" placeholder="e.g., 24%">
+                        </div>
+                        <div class="form-field">
+                            <label for="state">State</label>
+                            <input type="text" id="state" name="state" placeholder="e.g., California">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="filing_status">Filing Status</label>
+                            <select id="filing_status" name="filing_status">
+                                <option value="">Select filing status</option>
+                                <option value="single">Single</option>
+                                <option value="married_joint">Married Filing Jointly</option>
+                                <option value="married_separate">Married Filing Separately</option>
+                                <option value="head_of_household">Head of Household</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Goals Section -->
+                <section class="form-group">
+                    <h2>🎯 Financial Goals</h2>
+                    <div id="goals-container">
+                        <div class="goal-item">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label>Goal Name *</label>
+                                    <input type="text" class="goal-name" required placeholder="e.g., Retirement">
+                                </div>
+                                <div class="form-field">
+                                    <label>Target Amount ($) *</label>
+                                    <input type="number" class="goal-amount" required min="0" placeholder="2000000">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label>Timeline *</label>
+                                    <input type="text" class="goal-timeline" required placeholder="e.g., 15 years">
+                                </div>
+                                <div class="form-field">
+                                    <label>Priority</label>
+                                    <select class="goal-priority">
+                                        <option value="high">High</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="add-goal-btn" class="btn-secondary">+ Add Another Goal</button>
+                </section>
+
+                <div class="form-actions">
+                    <button type="submit" id="submit-btn" class="btn-primary">
+                        <span id="submit-text">Generate Investment Strategy</span>
+                        <span id="loading-spinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="results-section" style="display: none;">
+            <div class="results-header">
+                <h2>📈 Your Investment Strategy</h2>
+                <button id="back-btn" class="btn-secondary">← Back to Form</button>
+            </div>
+            <div id="results-content"></div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
+
