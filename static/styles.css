@@ -293,6 +293,47 @@ header h1 {
     border-bottom: 2px solid var(--border-color);
 }
 
+.results-layout {
+    display: flex;
+    gap: 20px;
+}
+
+.results-sidebar {
+    width: 260px;
+    flex: 0 0 260px;
+    background: var(--background);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--border-color);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+    padding: 12px;
+}
+
+.sidebar-item {
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 9999px;
+    border: 2px solid var(--border-color);
+    background: var(--surface);
+    color: var(--text-primary);
+    padding: 10px 16px;
+}
+
+.sidebar-item:hover {
+    transform: translateY(-1px);
+}
+
+.sidebar-item.active {
+    border-color: var(--primary-color);
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+.results-main {
+    flex: 1;
+}
+
 .results-header h2 {
     color: var(--primary-color);
     font-size: 1.8rem;
@@ -306,6 +347,8 @@ header h1 {
     border-left: 4px solid var(--primary-color);
     box-shadow: var(--shadow);
 }
+
+/* Collapsible class retained for semantics; all sections remain visible */
 
 .result-section h3 {
     color: var(--primary-color);

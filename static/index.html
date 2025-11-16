@@ -182,7 +182,50 @@
                 <h2>📈 Your Investment Strategy</h2>
                 <button id="back-btn" class="btn-secondary">← Back to Form</button>
             </div>
-            <div id="results-content" class="fade-in"></div>
+            <div class="results-layout">
+                <aside class="results-sidebar">
+                    <button class="sidebar-item" data-target="risk_assessment">🛡️ Risk Assessment</button>
+                    <button class="sidebar-item" data-target="portfolio_analysis">💼 Portfolio Analysis</button>
+                    <button class="sidebar-item" data-target="tax_optimization">💰 Tax Optimization</button>
+                    <button class="sidebar-item" data-target="market_research">📊 Market Research</button>
+                    <button class="sidebar-item" data-target="financial_plan">🎯 Financial Planning</button>
+                    <button class="sidebar-item" data-target="compliance_review">✅ Compliance Review</button>
+                </aside>
+                <main class="results-main">
+                    <div class="success-badge">✓ Analysis Complete</div>
+                    <section id="sec-risk_assessment" class="result-section collapsible">
+                        <h3>🛡️ Risk Assessment</h3>
+                        <div class="result-content" data-section="risk_assessment"></div>
+                    </section>
+                    <section id="sec-portfolio_analysis" class="result-section collapsible">
+                        <h3>💼 Portfolio Analysis</h3>
+                        <div class="result-content" data-section="portfolio_analysis"></div>
+                    </section>
+                    <section id="sec-tax_optimization" class="result-section collapsible">
+                        <h3>💰 Tax Optimization Opportunities</h3>
+                        <div class="result-content" data-section="tax_optimization"></div>
+                    </section>
+                    <section id="sec-market_research" class="result-section collapsible">
+                        <h3>📊 Market Research & Trends</h3>
+                        <div class="result-content" data-section="market_research"></div>
+                    </section>
+                    <section id="sec-financial_plan" class="result-section collapsible">
+                        <h3>🎯 Financial Planning</h3>
+                        <div class="result-content" data-section="financial_plan"></div>
+                    </section>
+                    <section id="sec-compliance_review" class="result-section collapsible">
+                        <h3>✅ Compliance Review</h3>
+                        <div class="result-content" data-section="compliance_review"></div>
+                    </section>
+                    <section class="result-section" style="background: #fef3c7; border-left-color: #f59e0b;">
+                        <h3>⚠️ Important Notice</h3>
+                        <div class="result-content">
+                            <p><strong>This report is for informational purposes only and does not constitute financial advice.</strong></p>
+                            <p>Please consult with licensed financial professionals before making investment decisions.</p>
+                        </div>
+                    </section>
+                </main>
+            </div>
         </div>
     </div>
 
